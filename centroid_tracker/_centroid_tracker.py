@@ -112,7 +112,7 @@ class CentroidTracker():
         return used_previous_indices, used_input_indices
 
     def _handle_unused_ids_objects(self, previous_ids, input_centroids,
-            used_previous_indices, used_input_indices, bounding_boxes
+            used_previous_indices, used_input_indices, bounding_boxes,
             distance_matrix):
         unusedRows = set(
             range(
