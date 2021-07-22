@@ -86,7 +86,7 @@ class CentroidTracker():
         return exceptional_case
 
     def _update_objects(self, distance_matrix, sorted_indices,
-            previous_ids, input_centroids):
+            previous_ids, input_centroids, bounding_boxes):
         used_previous_indices = set()
         used_input_indices = set()
 
@@ -154,7 +154,8 @@ class CentroidTracker():
             used_previous_indices, used_input_indices = \
                 self._update_objects(
                     distance_matrix, sorted_indices,
-                    previous_centroids, input_centroids
+                    previous_centroids, input_centroids,
+                    bounding_boxes
                 )
             
             self._handle_unused_ids_objects(
