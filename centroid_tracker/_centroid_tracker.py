@@ -100,7 +100,11 @@ class CentroidTracker():
 
             object_id = previous_ids[previous_index]
             new_coordinates = input_centroids[input_index]
-            self._update_object(object_id, new_coordinates, bounding_boxes[input_index])
+            self._update_object(
+                object_id,
+                new_coordinates,
+                bounding_boxes[input_index]
+            )
 
             used_previous_indices.add(previous_index)
             used_input_indices.add(input_index)
@@ -140,9 +144,18 @@ class CentroidTracker():
                 previous_centroids, input_centroids
             )
 
-            sorted_indices = np.dstack(np.unravel_index(np.argsort(distance_matrix.ravel()), distance_matrix.shape))[0]
+            sorted_indices = np.dstack(
+                np.unravel_index(
+                    np.argsort(distance_matrix.ravel()),
+                    distance_matrix.shape
+                )
+            )[0]
 
-            self._update_objects(distance_matrix, sorted_indices, previous_centroids, input_centroids)
+            used_previous_indices, used_input_indices = \
+                self._update_objects(
+                    distance_matrix, sorted_indices,
+                    previous_centroids, input_centroids
+                )
             
             self._handle_unused_ids_objects(
                 previous_ids, input_centroids,
