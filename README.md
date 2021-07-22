@@ -2,7 +2,7 @@
 
 A simple centroid tracker intended for people tracking.
 
-Original repo: [](https://github.com/lev1khachatryan/Centroid-Based_Object_Tracking)
+Based on: [Centroid-Based_Object_Tracking](https://github.com/lev1khachatryan/Centroid-Based_Object_Tracking)
 
 # Notice
 This is a personal project under development. All bug reports and feature requests are welcome.
