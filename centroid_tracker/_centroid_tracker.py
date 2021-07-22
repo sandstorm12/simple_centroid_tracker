@@ -154,7 +154,7 @@ class CentroidTracker():
             used_previous_indices, used_input_indices = \
                 self._update_objects(
                     distance_matrix, sorted_indices,
-                    previous_centroids, input_centroids,
+                    previous_ids, input_centroids,
                     bounding_boxes
                 )
             
