@@ -171,6 +171,7 @@ class CentroidTracker():
                 bounding_boxes, distance_matrix
             )
         else:
+            input_index_object_id_map = {}
             for i in range(len(bounding_boxes)):
                 input_index_object_id_map[i] = None
 
