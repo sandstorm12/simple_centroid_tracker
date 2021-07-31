@@ -82,7 +82,7 @@ class CentroidTracker():
                 self.register(input_centroids[i], bounding_boxes[i])
 
             exceptional_case = True
-        
+
         return exceptional_case
 
     def _update_objects(self, distance_matrix, sorted_indices,
@@ -158,7 +158,7 @@ class CentroidTracker():
                     previous_ids, input_centroids,
                     bounding_boxes
                 )
-            
+
             self._handle_unused_ids_objects(
                 previous_ids, input_centroids,
                 used_previous_indices, used_input_indices,
@@ -174,8 +174,8 @@ class CentroidTracker():
 
         self.objects[object_id] = new_coordinates
         self.disappeared[object_id] = 0
-        
+
     def update(self, rects):
         objects = self._assign_ids(rects)
-        
+
         return objects
