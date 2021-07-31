@@ -82,13 +82,14 @@ class CentroidTracker():
                 self.register(input_centroids[i], bounding_boxes[i])
 
             exceptional_case = True
-        
+
         return exceptional_case
 
     def _update_objects(self, distance_matrix, sorted_indices,
             previous_ids, input_centroids, bounding_boxes):
         used_previous_indices = set()
         used_input_indices = set()
+        input_index_object_id_map = {}
 
         # TODO: Refactor the condition
         for (previous_index, input_index) in sorted_indices:
@@ -96,6 +97,7 @@ class CentroidTracker():
                     input_index in used_input_indices or \
                     distance_matrix[previous_index, input_index] > \
                         self.max_distance:
+                input_index_object_id_map[input_index] = None
                 continue
 
             object_id = previous_ids[previous_index]
@@ -108,8 +110,10 @@ class CentroidTracker():
 
             used_previous_indices.add(previous_index)
             used_input_indices.add(input_index)
+            input_index_object_id_map[input_index] = object_id
 
-        return used_previous_indices, used_input_indices
+        return used_previous_indices, used_input_indices, \
+            input_index_object_id_map
 
     def _handle_unused_ids_objects(self, previous_ids, input_centroids,
             used_previous_indices, used_input_indices, bounding_boxes,
@@ -131,11 +135,12 @@ class CentroidTracker():
         for col in unusedCols:
             self.register(input_centroids[col], bounding_boxes[col])
 
-    def _assign_ids(self, bounding_boxes):
+    def _assign_ids(self, bounding_boxes, return_all_objects=False):
         exceptional_case = self._handle_exceptional_cases(
             bounding_boxes, self.objects
         )
 
+        input_index_object_id_map = None
         if not exceptional_case:
             input_centroids = self._get_input_centroids(bounding_boxes)
             previous_centroids, previous_ids = \
@@ -152,20 +157,44 @@ class CentroidTracker():
                 )
             )[0]
 
-            used_previous_indices, used_input_indices = \
+            used_previous_indices, used_input_indices, \
+                input_index_object_id_map = \
                 self._update_objects(
                     distance_matrix, sorted_indices,
                     previous_ids, input_centroids,
                     bounding_boxes
                 )
-            
+
             self._handle_unused_ids_objects(
                 previous_ids, input_centroids,
                 used_previous_indices, used_input_indices,
                 bounding_boxes, distance_matrix
             )
+        else:
+            input_index_object_id_map = {}
+            for i in range(len(bounding_boxes)):
+                input_index_object_id_map[i] = None
 
-        return self.objects
+        objects = self._generate_response(
+            return_all_objects, input_index_object_id_map
+        )
+
+        return objects
+
+    def _generate_response(self, return_all_objects, input_index_object_id_map):
+        objects = None
+        if return_all_objects:
+            objects = self.objects
+        else:
+            objects = OrderedDict()
+            for index in range(len(input_index_object_id_map)):
+                object_id = input_index_object_id_map[index]
+                if object_id is not None:
+                    objects[object_id] = self.objects[object_id]
+                else:
+                    objects[object_id] = None
+
+        return objects
 
     def _update_object(self, object_id, new_coordinates, bounding_box):
         self._update_object_height(object_id, bounding_box)
@@ -174,8 +203,8 @@ class CentroidTracker():
 
         self.objects[object_id] = new_coordinates
         self.disappeared[object_id] = 0
-        
+
     def update(self, rects):
         objects = self._assign_ids(rects)
-        
+
         return objects
