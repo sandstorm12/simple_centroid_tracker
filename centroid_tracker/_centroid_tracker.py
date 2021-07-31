@@ -140,6 +140,7 @@ class CentroidTracker():
             bounding_boxes, self.objects
         )
 
+        input_index_object_id_map = None
         if not exceptional_case:
             input_centroids = self._get_input_centroids(bounding_boxes)
             previous_centroids, previous_ids = \
@@ -169,6 +170,9 @@ class CentroidTracker():
                 used_previous_indices, used_input_indices,
                 bounding_boxes, distance_matrix
             )
+        else:
+            for i in range(len(bounding_boxes)):
+                input_index_object_id_map[i] = None
 
         objects = self._generate_response(
             return_all_objects, input_index_object_id_map
@@ -184,7 +188,10 @@ class CentroidTracker():
             objects = OrderedDict()
             for index in range(len(input_index_object_id_map)):
                 object_id = input_index_object_id_map[index]
-                objects[object_id] = self.objects[object_id]
+                if object_id is not None:
+                    objects[object_id] = self.objects[object_id]
+                else:
+                    objects[object_id] = None
 
         return objects
 
