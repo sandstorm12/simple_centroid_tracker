@@ -10,7 +10,7 @@ def read_requirements(path="./requirements.txt"):
 
 setup(
     name="centroid_tracker",
-    version="1.0.2",
+    version="1.0.4",
     author="Hamid Mohammadi",
     author_email="sandstormeatwo@gmail.com",
     description=("Simple centroid tracker."),

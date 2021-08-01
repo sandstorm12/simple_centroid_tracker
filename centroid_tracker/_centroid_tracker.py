@@ -4,6 +4,21 @@ import scipy.spatial
 from collections import OrderedDict
 
 
+# class ObjectsInformation(object):
+#     def __init__(self):
+#         self.objects = OrderedDict()
+#         self.diff_list = 
+
+#     def add_object(self, key, value):
+#         self.object[key] = value
+
+#     def get_object(self, key):
+#         return self.object[key]
+
+#     def remove_object(self, key):
+#         pass
+
+
 class CentroidTracker():
     def __init__(self, max_disappeared=10, max_distance=40):
         self.next_id = 0
@@ -15,7 +30,9 @@ class CentroidTracker():
 
         self.object_height = {}
 
-    def register(self, centroid, bounding_box):
+        self.input_index_object_id_map = None
+
+    def _register(self, centroid, bounding_box, input_index):
         new_id = self._get_new_id()
 
         self._update_object_height(new_id, bounding_box)
@@ -24,7 +41,9 @@ class CentroidTracker():
         self.objects[new_id] = centroid
         self.disappeared[new_id] = 0
 
-    def deregister(self, id):
+        self.input_index_object_id_map[input_index] = new_id
+
+    def _deregister(self, id):
         del self.objects[id]
         del self.disappeared[id]
 
@@ -34,7 +53,7 @@ class CentroidTracker():
 
         return new_id
 
-    def _update_object_height(self, object_id, bounding_box, weight=2):        
+    def _update_object_height(self, object_id, bounding_box, weight=2):
         y1 = bounding_box[1]
         y2 = bounding_box[3]
         new_height = y2 - y1
@@ -73,13 +92,13 @@ class CentroidTracker():
             for object_id in list(self.disappeared.keys()):
                 self.disappeared[object_id] += 1
                 if self.disappeared[object_id] > self.max_disappeared:
-                    self.deregister(object_id)
+                    self._deregister(object_id)
 
             exceptional_case = True
         elif len(self.objects) == 0:
             input_centroids = self._get_input_centroids(bounding_boxes)
             for i in range(len(input_centroids)):
-                self.register(input_centroids[i], bounding_boxes[i])
+                self._register(input_centroids[i], bounding_boxes[i], i)
 
             exceptional_case = True
 
@@ -97,7 +116,6 @@ class CentroidTracker():
                     input_index in used_input_indices or \
                     distance_matrix[previous_index, input_index] > \
                         self.max_distance:
-                input_index_object_id_map[input_index] = None
                 continue
 
             object_id = previous_ids[previous_index]
@@ -105,15 +123,14 @@ class CentroidTracker():
             self._update_object(
                 object_id,
                 new_coordinates,
-                bounding_boxes[input_index]
+                bounding_boxes[input_index],
+                input_index
             )
 
             used_previous_indices.add(previous_index)
             used_input_indices.add(input_index)
-            input_index_object_id_map[input_index] = object_id
 
-        return used_previous_indices, used_input_indices, \
-            input_index_object_id_map
+        return used_previous_indices, used_input_indices
 
     def _handle_unused_ids_objects(self, previous_ids, input_centroids,
             used_previous_indices, used_input_indices, bounding_boxes,
@@ -131,16 +148,15 @@ class CentroidTracker():
             self.disappeared[object_id] += 1
 
             if self.disappeared[object_id] > self.max_disappeared:
-                self.deregister(object_id)
+                self._deregister(object_id)
         for col in unusedCols:
-            self.register(input_centroids[col], bounding_boxes[col])
+            self._register(input_centroids[col], bounding_boxes[col], col)
 
     def _assign_ids(self, bounding_boxes, return_all_objects=False):
         exceptional_case = self._handle_exceptional_cases(
             bounding_boxes, self.objects
         )
 
-        input_index_object_id_map = None
         if not exceptional_case:
             input_centroids = self._get_input_centroids(bounding_boxes)
             previous_centroids, previous_ids = \
@@ -157,8 +173,7 @@ class CentroidTracker():
                 )
             )[0]
 
-            used_previous_indices, used_input_indices, \
-                input_index_object_id_map = \
+            used_previous_indices, used_input_indices = \
                 self._update_objects(
                     distance_matrix, sorted_indices,
                     previous_ids, input_centroids,
@@ -170,25 +185,23 @@ class CentroidTracker():
                 used_previous_indices, used_input_indices,
                 bounding_boxes, distance_matrix
             )
-        else:
-            input_index_object_id_map = {}
-            for i in range(len(bounding_boxes)):
-                input_index_object_id_map[i] = None
 
         objects = self._generate_response(
-            return_all_objects, input_index_object_id_map
+            return_all_objects
         )
 
         return objects
 
-    def _generate_response(self, return_all_objects, input_index_object_id_map):
+    # TODO: You can make this consume the input_in_map
+    # instead of the update method
+    def _generate_response(self, return_all_objects):
         objects = None
         if return_all_objects:
             objects = self.objects
         else:
             objects = OrderedDict()
-            for index in range(len(input_index_object_id_map)):
-                object_id = input_index_object_id_map[index]
+            for index in range(len(self.input_index_object_id_map)):
+                object_id = self.input_index_object_id_map[index]
                 if object_id is not None:
                     objects[object_id] = self.objects[object_id]
                 else:
@@ -196,7 +209,8 @@ class CentroidTracker():
 
         return objects
 
-    def _update_object(self, object_id, new_coordinates, bounding_box):
+    def _update_object(self, object_id, new_coordinates, bounding_box,
+            input_index):
         self._update_object_height(object_id, bounding_box)
 
         new_coordinates[1] += self.object_height[object_id]
@@ -204,7 +218,14 @@ class CentroidTracker():
         self.objects[object_id] = new_coordinates
         self.disappeared[object_id] = 0
 
+        self.input_index_object_id_map[input_index] = object_id
+
+    def _clear_input_id_map(self):
+        self.input_index_object_id_map = {}
+
     def update(self, rects):
+        self._clear_input_id_map()
+
         objects = self._assign_ids(rects)
 
         return objects
